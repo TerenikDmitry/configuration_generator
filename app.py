@@ -108,15 +108,15 @@ class DraggableLabel(QLabel):
 class MainWindow(QMainWindow):
 
     colors = [
-        "#FCE4EC",  # рожевий пастельний
-        "#FFF3E0",  # персиковий пастельний
-        "#FFF9C4",  # жовтий пастельний
-        "#E8F5E9",  # зелений пастельний
-        "#E3F2FD",  # блакитний пастельний
-        "#EDE7F6",  # лавандовий пастельний
-        "#FFEBEE",  # кораловий пастельний
-        "#F3E5F5",  # ліловий пастельний
-        "#E1F5FE"  # м'ятно-блакитний пастельний
+        "#FCE4EC",
+        "#FFF3E0",
+        "#FFF9C4",
+        "#E8F5E9",
+        "#E3F2FD",
+        "#EDE7F6",
+        "#FFEBEE",
+        "#F3E5F5",
+        "#E1F5FE"
     ]
 
     def _get_color(self, index):

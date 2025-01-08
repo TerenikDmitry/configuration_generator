@@ -3,7 +3,7 @@ from itertools import product
 from typing import Dict, List
 
 
-class Classifier1:
+class Classifier:
 
     def __init__(self, file_path: str):
         config_date = json.load(open(file_path))
@@ -160,10 +160,9 @@ class Classifier1:
         return list(dict.fromkeys([self._format_strategy(valid_strategy, self.code_form_all) for valid_strategy in valid_strategies]))
 
 
-classifier_1 = Classifier1('projects/project_example.json')
+classifier = Classifier('projects/project_example.json')
 
-
-valid_combinations = classifier_1.calculate_combinations()
+valid_combinations = classifier.calculate_combinations()
 
 print("All possible deployment strategies (including filters):")
 for valid_combination in valid_combinations:
