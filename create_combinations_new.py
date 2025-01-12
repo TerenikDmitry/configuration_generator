@@ -1,15 +1,18 @@
 import json
 from itertools import product
-from typing import Dict, List
+from typing import List
 
 
 class ClassifierNew:
 
     def __init__(self, file_path: str):
-        config_date = json.load(open(file_path))
+        with open(file_path, 'r', encoding='utf-8') as f:
+            config_data = json.load(f)
 
-        self.features = config_date['features']
-        self.constraints = config_date['constraints']
+        self.features = config_data['features']
+        self.constraints = config_data['constraints']
+
+        self.model = [feature['name'] for feature in self.features]
 
     def calculate_combinations(self) -> List[str]:
         # Створення словника ознак з їхніми доменами
@@ -19,7 +22,7 @@ class ClassifierNew:
         all_combinations = list(product(*features.values()))
         feature_names = list(features.keys())
 
-        valid_configurations = []
+        valid_configurations = set()
 
         for combination in all_combinations:
             config = dict(zip(feature_names, combination))
@@ -27,31 +30,54 @@ class ClassifierNew:
 
             for constraint in self.constraints:
                 if constraint['rule_type'] == 'conditional':
-                    condition_feature = constraint['condition']['feature']
-                    condition_value = constraint['condition']['value']
-                    if config[condition_feature] == condition_value:
-                        for action in constraint['actions']:
-                            action_feature = action['feature']
+                    # Перевірка умов
+                    check_condition = True
+                    for condition in constraint['conditions']:
+                        condition_feature = condition['feature']
+                        condition_value = condition['value']
+
+                        if config[condition_feature] != condition_value:
+                            check_condition = False
+                            break
+
+                    if not check_condition:
+                        continue
+
+                    for action in constraint['actions']:
+                        action_feature = action['feature']
+                        action_mode = action['mode']
+
+                        if action_mode == 'block':
                             allowed_values = action['allowed_values']
-                            if allowed_values:
-                                if config[action_feature] not in allowed_values:
-                                    is_valid = False
-                                    break
-                            else:
-                                # allowed_values порожній список означає, що значення заборонені
+                            if config[action_feature] not in allowed_values:
                                 is_valid = False
                                 break
-                # Можна додати обробку інших типів constraints тут
+                        elif action_mode == 'null':
+                            config[action_feature] = 'None'
+
+                    if not is_valid:
+                        break
+
+                elif constraint['rule_type'] == 'domain':
+                    domain_feature = constraint['feature']
+                    domain_allowed_values = constraint['allowed_values']
+                    if config[domain_feature] not in domain_allowed_values:
+                        is_valid = False
+                        break
+
+                else:
+                    raise Exception(f'Unknown constraint type {constraint["rule_type"]}')
+
             if is_valid:
-                valid_configurations.append(config)
+                valid_configurations.add('/'.join(config[_key] for _key in self.model))
 
-        return valid_configurations
+        return list(valid_configurations)
 
 
-classifier_new = ClassifierNew('projects/project_example_new.json')
+if __name__ == '__main__':
+    classifier_new = ClassifierNew('projects/project_example_new.json')
+    valid_combinations = classifier_new.calculate_combinations()
 
-valid_combinations = classifier_new.calculate_combinations()
-
-print("All possible deployment strategies (including filters):")
-for valid_combination in valid_combinations:
-    print(valid_combination)
+    print("All possible deployment strategies (including filters):")
+    for idx, valid_combination in enumerate(valid_combinations, start=1):
+        print(f"{idx}. {valid_combination}")

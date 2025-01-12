@@ -6,10 +6,12 @@ from typing import Dict, List
 class Classifier:
 
     def __init__(self, file_path: str):
-        config_date = json.load(open(file_path))
+        with open(file_path, 'r', encoding='utf-8') as f:
+            config_data = json.load(f)
 
-        self.groups = config_date['groups']
-        self.filters = config_date['filters']
+        self.groups = config_data['groups']
+        self.filters = config_data['filters']
+
         self.code_form_all = []
 
     def _format_strategy(self, strategy_dict: Dict[str, str], _code_form_all: List[List[str]]) -> str:
@@ -160,10 +162,10 @@ class Classifier:
         return list(dict.fromkeys([self._format_strategy(valid_strategy, self.code_form_all) for valid_strategy in valid_strategies]))
 
 
-classifier = Classifier('projects/project_example.json')
+if __name__ == '__main__':
+    classifier = Classifier('projects/project_example.json')
+    valid_combinations = classifier.calculate_combinations()
 
-valid_combinations = classifier.calculate_combinations()
-
-print("All possible deployment strategies (including filters):")
-for valid_combination in valid_combinations:
-    print(valid_combination)
+    print("All possible deployment strategies (including filters):")
+    for idx, valid_combination in enumerate(valid_combinations, start=1):
+        print(f"{idx}. {valid_combination}")
