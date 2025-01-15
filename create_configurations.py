@@ -28,7 +28,12 @@ def main(file_path: str):
 
     print("\nBlocked configurations:")
     for idx, (constraint_id, config) in enumerate(blocked_combinations, start=1):
-        print(f"{idx}. Blocked by {constraint_id}: {config}")
+        print(f"{idx}. Blocked by ({constraint_id}): {config}")
+
+    # Show constraint descriptions
+    print("\nConstraints description:")
+    for description in configuration_generator.list_constraints_descriptions():
+        print(description)
 
 
 if __name__ == '__main__':

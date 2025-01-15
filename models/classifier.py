@@ -30,6 +30,15 @@ class ConfigurationGenerator:
         # Define the sequence of features for consistent configuration output
         self.feature_sequence = [feature['name'] for feature in self.features]
 
+    def list_constraints_descriptions(self) -> List[str]:
+        """
+        Generate a list of descriptions for all constraints.
+
+        Returns:
+            List[str]: A list of strings where each string contains the ID and description of a constraint.
+        """
+        return [f"ID: {constraint['id']}. Description: {constraint['description']}" for constraint in self.constraints]
+
     def _format_configuration(self, config: Dict) -> str:
         """
         Format a configuration dictionary into a string representation based on feature sequence.
