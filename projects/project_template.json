@@ -1,0 +1,28 @@
+{
+  "features": [
+    {
+      "name": "Feature 1",
+      "description": "Feature description",
+      "type": "enum",
+      "domain": [
+        "domain 1",
+        "domain 2",
+        "domain 3"
+      ],
+      "group": "Group 1"
+    }
+  ],
+
+  "constraints": [
+    {
+      "id": "c0",
+      "description": "Allow only 2 domains",
+      "rule_type": "domain",
+      "feature": "Feature 1",
+      "allowed_values": [
+        "domain 1",
+        "domain 2"
+      ]
+    }
+  ]
+}

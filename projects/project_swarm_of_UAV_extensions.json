@@ -81,7 +81,9 @@
       "rule_type": "domain",
       "feature": "Резервування системи",
       "allowed_values": [
-        "ПН"
+        "БР",
+        "РЦ",
+        "РД"
       ]
     },
     {
