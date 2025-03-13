@@ -30,6 +30,8 @@ class ConfigurationGenerator:
         # Define the sequence of features for consistent configuration output
         self.feature_sequence = [feature['name'] for feature in self.features]
 
+        self.statistics = {'iterations': 0}
+
     def list_constraints_descriptions(self) -> List[str]:
         """
         Generate a list of descriptions for all constraints.
@@ -79,6 +81,7 @@ class ConfigurationGenerator:
                 - A list of valid configurations, formatted as strings.
                 - A list of tuples containing constraint IDs and corresponding blocked configurations.
         """
+        self.statistics = {'iterations': 0}
 
         # Create a dictionary of feature domains
         features = {feature['name']: feature['domain'] for feature in self.features}
@@ -99,6 +102,8 @@ class ConfigurationGenerator:
                     # Check conditions
                     check_condition = True
                     for condition in constraint['conditions']:
+                        self.statistics['iterations'] += 1
+
                         condition_feature = condition['feature']
                         condition_value = condition['value']
 
@@ -125,6 +130,8 @@ class ConfigurationGenerator:
                         break
 
                 elif constraint['rule_type'] == 'domain':
+                    self.statistics['iterations'] += 1
+
                     # Check domain constraints
                     domain_feature = constraint['feature']
                     domain_allowed_values = constraint['allowed_values']

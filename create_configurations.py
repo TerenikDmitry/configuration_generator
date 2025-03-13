@@ -15,18 +15,18 @@ def main(file_path: str):
 
     # Generate all possible configurations
     all_combinations = configuration_generator.calculate_all_configurations()
-    print(f"All possible configurations {len(all_combinations)}:")
+    print(f"All possible configurations ({len(all_combinations)}):")
     for idx, config in enumerate(all_combinations, start=1):
         print(f"{idx}. {config}")
 
     # Generate valid configurations and identify blocked configurations
     valid_combinations, blocked_combinations = configuration_generator.calculate_valid_configurations()
 
-    print("\nValid configurations:")
+    print(f"\nValid configurations ({len(valid_combinations)}):")
     for idx, config in enumerate(valid_combinations, start=1):
         print(f"{idx}. {config}")
 
-    print("\nBlocked configurations:")
+    print(f"\nBlocked configurations ({len(blocked_combinations)}):")
     for idx, (constraint_id, config) in enumerate(blocked_combinations, start=1):
         print(f"{idx}. Blocked by ({constraint_id}): {config}")
 
@@ -34,6 +34,8 @@ def main(file_path: str):
     print("\nConstraints description:")
     for description in configuration_generator.list_constraints_descriptions():
         print(description)
+
+    print(f"\nStatistics: {configuration_generator.statistics}")
 
 
 if __name__ == '__main__':
