@@ -74,7 +74,8 @@ class DraggableLabel(QLabel):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.dragStartPosition = None
+        self.dragStartPos = None
+        self.setAcceptDrops(True)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -82,15 +83,28 @@ class DraggableLabel(QLabel):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        if event.buttons() & Qt.LeftButton:
-            distance = (event.pos() - self.dragStartPos).manhattanLength()
-            if distance >= QApplication.startDragDistance():
-                drag = QDrag(self)
-                mime_data = QMimeData()
-                mime_data.setText(self.text())
-                drag.setMimeData(mime_data)
-                drag.exec_(Qt.MoveAction)
-        super().mouseMoveEvent(event)
+        if not (event.buttons() & Qt.LeftButton):
+            super().mouseMoveEvent(event)
+            return
+
+        if self.dragStartPos is None:
+            return
+
+        distance = (event.pos() - self.dragStartPos).manhattanLength()
+        if distance < QApplication.startDragDistance():
+            super().mouseMoveEvent(event)
+            return
+
+        drag = QDrag(self)
+        mime_data = QMimeData()
+        mime_data.setText(self.text())
+        drag.setMimeData(mime_data)
+
+        drag.exec_(Qt.MoveAction)
+
+        # The drop handler may rebuild the UI and delete this QLabel.
+        # Do not call super().mouseMoveEvent(event) or access self after this point.
+        return
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():
@@ -99,10 +113,17 @@ class DraggableLabel(QLabel):
             event.ignore()
 
     def dropEvent(self, event):
+        source = event.source()
+
+        if source is None or source is self:
+            event.ignore()
+            return
+
         event.setDropAction(Qt.MoveAction)
         event.acceptProposedAction()
-        # Generating a signal
-        self.dropped.emit(event.source(), self)
+
+        # The connected handler may refresh/rebuild the UI.
+        self.dropped.emit(source, self)
 
 
 class MainWindow(QMainWindow):
