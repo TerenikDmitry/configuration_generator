@@ -99,7 +99,7 @@ class ConfigurationGenerator:
             # never affect condition/domain checks of subsequent constraints in this combination.
             null_overrides = dict()
 
-            constraint = dict()
+            blocking_constraint = None
             for constraint in self.constraints:
                 if constraint['rule_type'] == 'conditional':
                     # Check conditions
@@ -130,6 +130,7 @@ class ConfigurationGenerator:
                             null_overrides[action_feature] = 'None'
 
                     if not is_valid:
+                        blocking_constraint = constraint
                         break
 
                 elif constraint['rule_type'] == 'domain':
@@ -140,6 +141,7 @@ class ConfigurationGenerator:
                     domain_allowed_values = constraint['allowed_values']
                     if config[domain_feature] not in domain_allowed_values:
                         is_valid = False
+                        blocking_constraint = constraint
                         break
 
                 else:
@@ -150,7 +152,7 @@ class ConfigurationGenerator:
             if is_valid and formatted_config not in valid_configurations:
                 valid_configurations.append(formatted_config)
 
-            if not is_valid and constraint:
-                blocked_configurations.append((constraint['id'], formatted_config))
+            if not is_valid and blocking_constraint:
+                blocked_configurations.append((blocking_constraint['id'], formatted_config))
 
         return valid_configurations, blocked_configurations
