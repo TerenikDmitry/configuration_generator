@@ -89,7 +89,7 @@
       "conditions": [
         {
           "feature": "Резервування системи",
-          "value": "БР"
+          "value": "РД"
         }
       ],
       "actions": [

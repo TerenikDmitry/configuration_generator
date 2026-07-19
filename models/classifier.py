@@ -95,6 +95,9 @@ class ConfigurationGenerator:
         for combination in all_combinations:
             config = dict(zip(self.feature_sequence, combination))
             is_valid = True
+            # Values set by 'null' actions, applied only to the formatted output so they
+            # never affect condition/domain checks of subsequent constraints in this combination.
+            null_overrides = dict()
 
             constraint = dict()
             for constraint in self.constraints:
@@ -124,7 +127,7 @@ class ConfigurationGenerator:
                                 is_valid = False
                                 break
                         elif action_mode == 'null':
-                            config[action_feature] = 'None'
+                            null_overrides[action_feature] = 'None'
 
                     if not is_valid:
                         break
@@ -142,7 +145,7 @@ class ConfigurationGenerator:
                 else:
                     raise Exception(f'Unknown constraint type {constraint["rule_type"]}')
 
-            formatted_config = self._format_configuration(config)
+            formatted_config = self._format_configuration({**config, **null_overrides})
 
             if is_valid and formatted_config not in valid_configurations:
                 valid_configurations.append(formatted_config)
