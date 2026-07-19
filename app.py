@@ -58,6 +58,12 @@ class AddFeatureDialog(QDialog):
         self.feature_name_input = QLineEdit()
         self.layout.addWidget(self.feature_name_input)
 
+        self.description_label = QLabel("Enter a description (optional):")
+        self.layout.addWidget(self.description_label)
+
+        self.feature_description_input = QLineEdit()
+        self.layout.addWidget(self.feature_description_input)
+
         self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
@@ -67,6 +73,33 @@ class AddFeatureDialog(QDialog):
 
     def get_feature_name(self):
         return self.feature_name_input.text()
+
+    def get_feature_description(self):
+        return self.feature_description_input.text()
+
+
+class AddOptionDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Add an option")
+
+        self.layout = QVBoxLayout()
+
+        self.code_label = QLabel("Enter a code:")
+        self.layout.addWidget(self.code_label)
+
+        self.code_input = QLineEdit()
+        self.layout.addWidget(self.code_input)
+
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+        self.layout.addWidget(self.buttons)
+
+        self.setLayout(self.layout)
+
+    def get_code(self):
+        return self.code_input.text()
 
 
 class DraggableLabel(QLabel):
@@ -151,7 +184,7 @@ class MainWindow(QMainWindow):
 
         # Main Data
         self.groups = {}
-        self.filters = []
+        self.constraints = []
 
         # Menu
         self.menu_bar = QMenuBar()
@@ -248,7 +281,7 @@ class MainWindow(QMainWindow):
         for feature_priority, feature in group["features"].items():
             label_text = f"Feature ({feature_priority}): {feature['name']}"
             for option in feature["options"]:
-                label_text += f"\n({option['code']}) {option['name']}"
+                label_text += f"\n- {option}"
             feature_label = DraggableLabel(label_text)
             feature_label.setProperty("labelType", "feature")
             feature_label.setProperty("groupIndex", group_priority)
@@ -257,7 +290,14 @@ class MainWindow(QMainWindow):
             feature_label.setLineWidth(2)
             feature_label.setAcceptDrops(True)
             feature_label.dropped.connect(self.handleDrop)
-            group_layout.addWidget(feature_label)
+
+            add_option_button = QPushButton("Add option +")
+            add_option_button.clicked.connect(lambda checked=False, f=feature: self.show_add_option_dialog(f))
+
+            feature_row = QHBoxLayout()
+            feature_row.addWidget(feature_label)
+            feature_row.addWidget(add_option_button)
+            group_layout.addLayout(feature_row)
 
         container = QWidget()
         group_color = self._get_color(self.project_layout.count())
@@ -273,10 +313,59 @@ class MainWindow(QMainWindow):
             if feature_name:
                 feature = {
                     "name": feature_name,
+                    "description": dialog.get_feature_description(),
+                    "type": "enum",
                     "options": []
                 }
                 group["features"][feature_priority] = feature
                 self.refresh_groups()
+
+    def show_add_option_dialog(self, feature: Dict):
+        dialog = AddOptionDialog()
+        if dialog.exec():
+            code = dialog.get_code()
+            if code:
+                feature["options"].append(code)
+                self.refresh_groups()
+
+    def _serialize_project(self) -> Dict:
+        features = []
+        for group_priority in sorted(self.groups.keys()):
+            group = self.groups[group_priority]
+            for feature_priority in sorted(group["features"].keys()):
+                feature = group["features"][feature_priority]
+                features.append({
+                    "name": feature["name"],
+                    "description": feature.get("description", ""),
+                    "type": feature.get("type", "enum"),
+                    "domain": list(feature["options"]),
+                    "group": group["group_name"],
+                })
+        return {"features": features, "constraints": self.constraints}
+
+    def _deserialize_project(self, data: Dict):
+        self.groups = {}
+        self.constraints = data.get("constraints", [])
+
+        group_priority = 0
+        feature_priority = 0
+        current_group_name = None
+
+        for feature_data in data.get("features", []):
+            group_name = feature_data.get("group", "")
+            if group_name != current_group_name:
+                group_priority += 1
+                feature_priority = 0
+                current_group_name = group_name
+                self.groups[group_priority] = {"group_name": group_name, "features": {}}
+
+            feature_priority += 1
+            self.groups[group_priority]["features"][feature_priority] = {
+                "name": feature_data["name"],
+                "description": feature_data.get("description", ""),
+                "type": feature_data.get("type", "enum"),
+                "options": [str(value) for value in feature_data.get("domain", [])],
+            }
 
     def save_project(self):
         options = QFileDialog.Options()
@@ -284,10 +373,7 @@ class MainWindow(QMainWindow):
         if file_path:
             with open(file_path, 'w', encoding='utf-8') as project_file:
                 json.dump(
-                    {
-                        "groups": self.groups,
-                        "filters": {}
-                    },
+                    self._serialize_project(),
                     project_file,
                     ensure_ascii=False,
                     indent=4
@@ -299,12 +385,12 @@ class MainWindow(QMainWindow):
         if file_path:
             with open(file_path, 'r', encoding='utf-8') as project_file:
                 project_configs = json.load(project_file)
-                self.groups = project_configs["groups"]
-                self.filters = project_configs["filters"]
+                self._deserialize_project(project_configs)
                 self.refresh_groups()
 
     def clear_project(self):
         self.groups = {}
+        self.constraints = []
         self.refresh_groups()
 
     def project_view(self):
@@ -319,8 +405,7 @@ class MainWindow(QMainWindow):
         if file_path:
             with open(file_path, 'r', encoding='utf-8') as project_file:
                 project_configs = json.load(project_file)
-                self.groups = project_configs["groups"]
-                self.filters = project_configs["filters"]
+                self._deserialize_project(project_configs)
                 self.refresh_classifier()
 
     def handleDrop(self, source_label, target_label):
