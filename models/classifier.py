@@ -65,10 +65,12 @@ class ConfigurationGenerator:
         all_combinations = list(product(*feature_domains))
 
         all_configurations = list()
+        seen_configurations = set()
         for combination in all_combinations:
             config = dict(zip(self.feature_sequence, combination))
             formatted_config = self._format_configuration(config)
-            if formatted_config not in all_configurations:
+            if formatted_config not in seen_configurations:
+                seen_configurations.add(formatted_config)
                 all_configurations.append(formatted_config)
         return all_configurations
 
@@ -90,6 +92,7 @@ class ConfigurationGenerator:
         all_combinations = list(product(*features.values()))
 
         valid_configurations = list()
+        seen_valid_configurations = set()
         blocked_configurations = list()
 
         for combination in all_combinations:
@@ -149,7 +152,8 @@ class ConfigurationGenerator:
 
             formatted_config = self._format_configuration({**config, **null_overrides})
 
-            if is_valid and formatted_config not in valid_configurations:
+            if is_valid and formatted_config not in seen_valid_configurations:
+                seen_valid_configurations.add(formatted_config)
                 valid_configurations.append(formatted_config)
 
             if not is_valid and blocking_constraint:
