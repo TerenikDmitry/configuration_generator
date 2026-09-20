@@ -1,2 +1,8 @@
 /.venv/
 /.idea/
+.claude/
+/exports/
+__pycache__/
+/.marimo.toml
+/__marimo__/session/
+.mcp.json
