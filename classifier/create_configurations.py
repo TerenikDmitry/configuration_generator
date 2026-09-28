@@ -1,5 +1,9 @@
+"""Run the constraint engine on a classifier project file.
+
+    python -m classifier.create_configurations classifier/projects/project_swarm_of_UAV.json
+"""
 import argparse
-from models.classifier import ConfigurationGenerator
+from classifier.engine import ConfigurationGenerator
 
 
 def main(file_path: str):

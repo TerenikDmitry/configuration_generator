@@ -1,0 +1,731 @@
+{
+    "meta": {
+        "title": "Ontology of reliability and availability models for UAV groups",
+        "language": "en",
+        "version": "1.0",
+        "date": "2026-08-27",
+        "base_format": "(CNCS 2025, DOI: 10.26906/SUNZ.2025.2.195-202): features + constraints",
+        "extensions": [
+            "features[].id — primary addressing key (O1..O9, M1..M2)",
+            "features[].layer — O (object) | M (methodological)",
+            "features[].facet_type, features[].weight — structural (w=2) | parametric (w=1); layer M has w=0",
+            "constraints[].rule_type = 'note' — consequence annotation, does not block a configuration",
+            "constraints[].kind — semantic | closure | cross-layer | reconciling",
+            "conditions[].values — compound membership condition (c5, c8)",
+            "actions[].mode = 'block' with a blocked_values field — list of excluded values",
+            "instances[] — new block of instances with statuses and relations"
+        ],
+        "derived_quantities": {
+            "D_max": {
+                "name": "maximum simultaneous demand for recovery",
+                "description": "The largest number of vehicles that may require recovery at the same time. A derived quantity: it is not a facet, because it is uniquely determined by other coordinates. It sets the bounds of the O4 domain.",
+                "rules": [
+                    "O6 = single -> D_max = r + 1",
+                    "O6 = multiple (cascading) -> D_max = n + r (upper bound by the conservation law)"
+                ]
+            }
+        },
+        "notes": [
+            "The order of features and constraints is significant (inherited from P2).",
+            "The 'null' mode is not used in the ontology: inapplicability is expressed by a domain value ('none (m=0)' for O4, 'none' for O8).",
+            "The distance between models is computed over layer O coordinates only.",
+            "Layer M is not enumerated: for a valid O-vector, the O->M rules yield the residual domains of M1, M2."
+        ]
+    },
+    "features": [
+        {
+            "id": "O1",
+            "name": "Redundancy type",
+            "description": "How reserve vehicles are kept within the group",
+            "type": "enum",
+            "domain": [
+                "no reserve",
+                "hot reserve (mh)",
+                "cold reserve (mc)",
+                "hybrid reserve (mh+mc)"
+            ],
+            "group": "structural",
+            "layer": "O",
+            "facet_type": "structural",
+            "weight": 2
+        },
+        {
+            "id": "O2",
+            "name": "Reserve depth",
+            "description": "Number of reserve vehicles r",
+            "type": "enum",
+            "domain": [
+                "0",
+                "1",
+                ">1"
+            ],
+            "group": "structural",
+            "layer": "O",
+            "facet_type": "structural",
+            "weight": 2
+        },
+        {
+            "id": "O3",
+            "name": "Logistic transit",
+            "description": "Distribution of the transit time T_f between the depot and the position",
+            "type": "enum",
+            "domain": [
+                "not considered",
+                "deterministic",
+                "exponential",
+                "Erlang (phase-type)"
+            ],
+            "group": "logistic",
+            "layer": "O",
+            "facet_type": "structural",
+            "weight": 2
+        },
+        {
+            "id": "O4",
+            "name": "Recovery channels",
+            "description": "Number of recovery channels m relative to D_max",
+            "type": "enum",
+            "domain": [
+                "none (m=0)",
+                "single channel (m=1)",
+                "limited (1<m<D_max)",
+                "unlimited (m≥D_max)"
+            ],
+            "group": "logistic",
+            "layer": "O",
+            "facet_type": "parametric",
+            "weight": 1,
+            "note": "Parametric for the values 'single channel' / 'limited' / 'unlimited'. The value 'none (m=0)' is an exception: it makes failure states absorbing, i.e. it changes the structure of the graph (Appendix A.4)."
+        },
+        {
+            "id": "O5",
+            "name": "Depot mobility",
+            "description": "Whether the depot changes location during the mission",
+            "type": "enum",
+            "domain": [
+                "static",
+                "mobile"
+            ],
+            "group": "logistic",
+            "layer": "O",
+            "facet_type": "parametric",
+            "weight": 1
+        },
+        {
+            "id": "O6",
+            "name": "Failure multiplicity per cycle",
+            "description": "Whether several vehicles can fail simultaneously from a common cause; determines the D_max formula",
+            "type": "enum",
+            "domain": [
+                "single",
+                "multiple (cascading)"
+            ],
+            "group": "failure",
+            "layer": "O",
+            "facet_type": "structural",
+            "weight": 2
+        },
+        {
+            "id": "O7",
+            "name": "Failures in transit phases",
+            "description": "Whether failures of vehicles in flight between the depot and the position are taken into account",
+            "type": "enum",
+            "domain": [
+                "failure-free",
+                "considered"
+            ],
+            "group": "failure",
+            "layer": "O",
+            "facet_type": "structural",
+            "weight": 2
+        },
+        {
+            "id": "O8",
+            "name": "Reserve management policy",
+            "description": "Rule for choosing the reserve type on replacement",
+            "type": "enum",
+            "domain": [
+                "none",
+                "static",
+                "priority (hot-first)",
+                "adaptive (mh↔mc)"
+            ],
+            "group": "policies",
+            "layer": "O",
+            "facet_type": "structural",
+            "weight": 2
+        },
+        {
+            "id": "O9",
+            "name": "Mission horizon",
+            "description": "Finiteness of the mission duration; an external operating condition (introduced by rule c10, subsection 2.4)",
+            "type": "enum",
+            "domain": [
+                "finite",
+                "infinite"
+            ],
+            "group": "mission conditions",
+            "layer": "O",
+            "facet_type": "parametric",
+            "weight": 1
+        },
+        {
+            "id": "M1",
+            "name": "Target metric",
+            "description": "The metric the model computes",
+            "type": "enum",
+            "domain": [
+                "K_ss",
+                "R(t)",
+                "MTTF"
+            ],
+            "group": "metrics",
+            "layer": "M",
+            "facet_type": null,
+            "weight": 0
+        },
+        {
+            "id": "M2",
+            "name": "Solution method",
+            "description": "Apparatus for building and solving the model",
+            "type": "enum",
+            "domain": [
+                "analytical CTMC",
+                "SAM-ASNA",
+                "SPN",
+                "simulation"
+            ],
+            "group": "methodological",
+            "layer": "M",
+            "facet_type": null,
+            "weight": 0
+        }
+    ],
+    "constraints": [
+        {
+            "id": "c1",
+            "kind": "semantic",
+            "description": "Without reserve vehicles the reserve depth is zero, and the reserve management policy has nothing to manage and takes the value 'none'. The recovery channels O4 remain in effect: a vehicle that left the position returns after recovery",
+            "rule_type": "conditional",
+            "conditions": [
+                {
+                    "feature": "O1",
+                    "value": "no reserve"
+                }
+            ],
+            "actions": [
+                {
+                    "feature": "O2",
+                    "mode": "block",
+                    "blocked_values": [
+                        "1",
+                        ">1"
+                    ]
+                },
+                {
+                    "feature": "O8",
+                    "mode": "block",
+                    "blocked_values": [
+                        "static",
+                        "priority (hot-first)",
+                        "adaptive (mh↔mc)"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "c2",
+            "kind": "semantic",
+            "description": "Switching between reserve types is possible only when both types are present, i.e. with a hybrid reserve",
+            "rule_type": "conditional",
+            "conditions": [
+                {
+                    "feature": "O8",
+                    "value": "adaptive (mh↔mc)"
+                }
+            ],
+            "actions": [
+                {
+                    "feature": "O1",
+                    "mode": "block",
+                    "blocked_values": [
+                        "no reserve",
+                        "hot reserve (mh)",
+                        "cold reserve (mc)"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "c3",
+            "kind": "semantic",
+            "description": "The order 'hot first, then cold' is defined only when both reserve types are present",
+            "rule_type": "conditional",
+            "conditions": [
+                {
+                    "feature": "O8",
+                    "value": "priority (hot-first)"
+                }
+            ],
+            "actions": [
+                {
+                    "feature": "O1",
+                    "mode": "block",
+                    "blocked_values": [
+                        "no reserve",
+                        "hot reserve (mh)",
+                        "cold reserve (mc)"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "c4",
+            "kind": "semantic",
+            "description": "With zero transit time the logistic component disappears from the model, and the crossover point of strategies by transit time does not exist. The configuration remains valid; only the set of computable metrics is restricted",
+            "rule_type": "note",
+            "conditions": [
+                {
+                    "feature": "O3",
+                    "value": "not considered"
+                }
+            ],
+            "actions": [
+                {
+                    "mode": "annotate",
+                    "annotation": "T_cross undefined"
+                }
+            ]
+        },
+        {
+            "id": "c5",
+            "kind": "semantic",
+            "description": "With multiple failure multiplicity several vehicles drop out at once; with a shallow reserve and a single recovery channel the system spends most of its time in states with an uncovered shortage, and availability degenerates",
+            "rule_type": "conditional",
+            "conditions": [
+                {
+                    "feature": "O6",
+                    "value": "multiple (cascading)"
+                },
+                {
+                    "feature": "O2",
+                    "values": [
+                        "0",
+                        "1"
+                    ]
+                }
+            ],
+            "actions": [
+                {
+                    "feature": "O4",
+                    "mode": "block",
+                    "blocked_values": [
+                        "single channel (m=1)"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "c6",
+            "kind": "closure",
+            "description": "Closure of c1: zero reserve depth means there are no reserve vehicles, so the redundancy type can only be 'no reserve'",
+            "rule_type": "conditional",
+            "conditions": [
+                {
+                    "feature": "O2",
+                    "value": "0"
+                }
+            ],
+            "actions": [
+                {
+                    "feature": "O1",
+                    "mode": "block",
+                    "blocked_values": [
+                        "hot reserve (mh)",
+                        "cold reserve (mc)",
+                        "hybrid reserve (mh+mc)"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "c7",
+            "kind": "closure",
+            "description": "Closure of c1: having nothing to manage means having no reserve",
+            "rule_type": "conditional",
+            "conditions": [
+                {
+                    "feature": "O8",
+                    "value": "none"
+                }
+            ],
+            "actions": [
+                {
+                    "feature": "O1",
+                    "mode": "block",
+                    "blocked_values": [
+                        "hot reserve (mh)",
+                        "cold reserve (mc)",
+                        "hybrid reserve (mh+mc)"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "c8",
+            "kind": "semantic",
+            "description": "With single failure multiplicity D_max = r + 1 <= 2, so the interval 1 < m < D_max is empty and the value 'limited' does not exist",
+            "rule_type": "conditional",
+            "conditions": [
+                {
+                    "feature": "O6",
+                    "value": "single"
+                },
+                {
+                    "feature": "O2",
+                    "values": [
+                        "0",
+                        "1"
+                    ]
+                }
+            ],
+            "actions": [
+                {
+                    "feature": "O4",
+                    "mode": "block",
+                    "blocked_values": [
+                        "limited (1<m<D_max)"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "c9",
+            "kind": "cross-layer",
+            "description": "Failure states are absorbing, the stationary distribution concentrates in them, and the availability coefficient tends to zero regardless of the parameters",
+            "rule_type": "conditional",
+            "conditions": [
+                {
+                    "feature": "O4",
+                    "value": "none (m=0)"
+                }
+            ],
+            "actions": [
+                {
+                    "feature": "M1",
+                    "mode": "block",
+                    "blocked_values": [
+                        "K_ss"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "c10",
+            "kind": "cross-layer",
+            "description": "R(t) decays to zero for any strategy; MTTF does not characterise a system that recovers after failure",
+            "rule_type": "conditional",
+            "conditions": [
+                {
+                    "feature": "O9",
+                    "value": "infinite"
+                }
+            ],
+            "actions": [
+                {
+                    "feature": "M1",
+                    "mode": "block",
+                    "blocked_values": [
+                        "R(t)",
+                        "MTTF"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "c11",
+            "kind": "cross-layer",
+            "description": "A constant sojourn time in a phase lacks the memoryless property; the process is non-Markovian, and the Kolmogorov–Chapman equations are inapplicable – neither with manual graph construction nor in SAM-ASNA",
+            "rule_type": "conditional",
+            "conditions": [
+                {
+                    "feature": "O3",
+                    "value": "deterministic"
+                }
+            ],
+            "actions": [
+                {
+                    "feature": "M2",
+                    "mode": "block",
+                    "blocked_values": [
+                        "analytical CTMC",
+                        "SAM-ASNA"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "c12",
+            "kind": "reconciling",
+            "description": "Reconciliation of c9 and c10: together they block the entire M1 domain, so the combination must be cut off at the object layer",
+            "rule_type": "conditional",
+            "conditions": [
+                {
+                    "feature": "O4",
+                    "value": "none (m=0)"
+                }
+            ],
+            "actions": [
+                {
+                    "feature": "O9",
+                    "mode": "block",
+                    "blocked_values": [
+                        "infinite"
+                    ]
+                }
+            ]
+        }
+    ],
+    "instances": [
+        {
+            "id": "i1",
+            "model": "(n,1c)",
+            "description": "Cold model, one cold reserve, 7 states / 10 transitions",
+            "coords": {
+                "O1": "cold reserve (mc)",
+                "O2": "1",
+                "O3": "exponential",
+                "O4": "unlimited (m≥D_max)",
+                "O5": "static",
+                "O6": "single",
+                "O7": "failure-free",
+                "O8": "static",
+                "O9": "infinite",
+                "M1": "K_ss",
+                "M2": "SAM-ASNA"
+            },
+            "status": "in manuscript",
+            "refs": [
+                "P4"
+            ],
+            "role": "base special case",
+            "relations": [
+                {
+                    "type": "is-special-case-of",
+                    "target": "i3",
+                    "narrowing_conditions": "r = 1; single multiplicity"
+                },
+                {
+                    "type": "is-special-case-of",
+                    "target": "i7",
+                    "narrowing_conditions": "r = 1; single multiplicity; m >= 2"
+                },
+                {
+                    "type": "mirror-along",
+                    "facet": "O1",
+                    "target": "i2"
+                }
+            ]
+        },
+        {
+            "id": "i2",
+            "model": "(n,1h)",
+            "description": "Hot model, one hot reserve, 9 states / 13 transitions",
+            "coords": {
+                "O1": "hot reserve (mh)",
+                "O2": "1",
+                "O3": "exponential",
+                "O4": "unlimited (m≥D_max)",
+                "O5": "static",
+                "O6": "single",
+                "O7": "failure-free",
+                "O8": "static",
+                "O9": "infinite",
+                "M1": "K_ss",
+                "M2": "SAM-ASNA"
+            },
+            "status": "in manuscript",
+            "refs": [
+                "P4"
+            ],
+            "role": "second branch (together with the Cold model) for T_cross calculations",
+            "relations": [
+                {
+                    "type": "is-special-case-of",
+                    "target": "i4",
+                    "narrowing_conditions": "r = 1; single multiplicity"
+                },
+                {
+                    "type": "mirror-along",
+                    "facet": "O1",
+                    "target": "i1"
+                }
+            ]
+        },
+        {
+            "id": "i3",
+            "model": "(n,rc)",
+            "description": "Generalised Cold model: r > 1 cold reserves, unlimited channels",
+            "coords": {
+                "O1": "cold reserve (mc)",
+                "O2": ">1",
+                "O3": "exponential",
+                "O4": "unlimited (m≥D_max)",
+                "O5": "static",
+                "O6": "single",
+                "O7": "failure-free",
+                "O8": "static",
+                "O9": "infinite",
+                "M1": "K_ss",
+                "M2": "SAM-ASNA"
+            },
+            "status": "gap",
+            "refs": [],
+            "role": "direct generalisation of i1",
+            "origin": "generalisation of i1 along facet O2",
+            "relations": [
+                {
+                    "type": "is-special-case-of",
+                    "target": "i7",
+                    "narrowing_conditions": "λ_cc = 0 (single multiplicity); m >= D_max"
+                },
+                {
+                    "type": "mirror-along",
+                    "facet": "O1",
+                    "target": "i4"
+                }
+            ]
+        },
+        {
+            "id": "i4",
+            "model": "(n,rh)",
+            "description": "Generalised Hot model: r > 1 hot reserves, unlimited channels",
+            "coords": {
+                "O1": "hot reserve (mh)",
+                "O2": ">1",
+                "O3": "exponential",
+                "O4": "unlimited (m≥D_max)",
+                "O5": "static",
+                "O6": "single",
+                "O7": "failure-free",
+                "O8": "static",
+                "O9": "infinite",
+                "M1": "K_ss",
+                "M2": "SAM-ASNA"
+            },
+            "status": "gap",
+            "refs": [],
+            "role": "direct generalisation of i2",
+            "origin": "symmetry of i3 along O1 (Observation 2)",
+            "relations": [
+                {
+                    "type": "mirror-along",
+                    "facet": "O1",
+                    "target": "i3"
+                }
+            ]
+        },
+        {
+            "id": "i5",
+            "model": "(n,1c, m=1)",
+            "description": "Strictly single-channel Cold model",
+            "coords": {
+                "O1": "cold reserve (mc)",
+                "O2": "1",
+                "O3": "exponential",
+                "O4": "single channel (m=1)",
+                "O5": "static",
+                "O6": "single",
+                "O7": "failure-free",
+                "O8": "static",
+                "O9": "infinite",
+                "M1": "K_ss",
+                "M2": "SAM-ASNA"
+            },
+            "status": "gap",
+            "refs": [],
+            "role": "found by an audit of coordinate O4",
+            "origin": "coordinate audit of i1 (Observation 1)",
+            "relations": [
+                {
+                    "type": "is-special-case-of",
+                    "target": "i7",
+                    "narrowing_conditions": "r = 1; single multiplicity; m = 1"
+                },
+                {
+                    "type": "mirror-along",
+                    "facet": "O1",
+                    "target": "i6"
+                }
+            ]
+        },
+        {
+            "id": "i6",
+            "model": "(n,1h, m=1)",
+            "description": "Strictly single-channel Hot model",
+            "coords": {
+                "O1": "hot reserve (mh)",
+                "O2": "1",
+                "O3": "exponential",
+                "O4": "single channel (m=1)",
+                "O5": "static",
+                "O6": "single",
+                "O7": "failure-free",
+                "O8": "static",
+                "O9": "infinite",
+                "M1": "K_ss",
+                "M2": "SAM-ASNA"
+            },
+            "status": "gap",
+            "refs": [],
+            "role": "found by an audit of coordinate O4",
+            "origin": "symmetry of i5 along O1 (Observation 2)",
+            "relations": [
+                {
+                    "type": "mirror-along",
+                    "facet": "O1",
+                    "target": "i5"
+                }
+            ]
+        },
+        {
+            "id": "i7",
+            "model": "(n,rc,m)",
+            "description": "Generalised Cold model with limited recovery channels",
+            "coords": {
+                "O1": "cold reserve (mc)",
+                "O2": ">1",
+                "O3": "exponential",
+                "O4": "limited (1<m<D_max)",
+                "O5": "static",
+                "O6": "multiple (cascading)",
+                "O7": "failure-free",
+                "O8": "static",
+                "O9": "infinite",
+                "M1": "K_ss",
+                "M2": "SAM-ASNA"
+            },
+            "status": "gap",
+            "refs": [],
+            "role": "generated by the search of subsection 2.5; nearest neighbour of i3 (weighted distance 3)",
+            "origin": "search for the 'relay chain' scenario",
+            "relations": [
+                {
+                    "type": "verified-by-narrowing",
+                    "target": "i1",
+                    "narrowing_conditions": "λ_cc = 0; r = 1; m >= 2"
+                },
+                {
+                    "type": "verified-by-narrowing",
+                    "target": "i3",
+                    "narrowing_conditions": "λ_cc = 0; m >= D_max"
+                },
+                {
+                    "type": "verified-by-narrowing",
+                    "target": "i5",
+                    "narrowing_conditions": "λ_cc = 0; r = 1; m = 1"
+                }
+            ]
+        }
+    ]
+}

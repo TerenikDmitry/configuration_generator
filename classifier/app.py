@@ -1,5 +1,6 @@
 import json
 import sys
+from pathlib import Path
 from typing import Dict
 
 from PyQt5.QtWidgets import (
@@ -20,6 +21,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QMimeData, pyqtSignal
 from PyQt5.QtGui import QDrag
+
+PROJECTS_DIR = str(Path(__file__).resolve().parent / "projects")
 
 
 class AddGroupDialog(QDialog):
@@ -369,7 +372,7 @@ class MainWindow(QMainWindow):
 
     def save_project(self):
         options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getSaveFileName(self, "Save Project", "./projects/", "JSON Files (*.json)", options=options)
+        file_path, _ = QFileDialog.getSaveFileName(self, "Save Project", PROJECTS_DIR, "JSON Files (*.json)", options=options)
         if file_path:
             with open(file_path, 'w', encoding='utf-8') as project_file:
                 json.dump(
@@ -381,7 +384,7 @@ class MainWindow(QMainWindow):
 
     def load_project(self):
         options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getOpenFileName(self, "load Project", "./projects/", "JSON Files (*.json)", options=options)
+        file_path, _ = QFileDialog.getOpenFileName(self, "load Project", PROJECTS_DIR, "JSON Files (*.json)", options=options)
         if file_path:
             with open(file_path, 'r', encoding='utf-8') as project_file:
                 project_configs = json.load(project_file)
@@ -401,7 +404,7 @@ class MainWindow(QMainWindow):
 
     def load_classifier(self):
         options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getOpenFileName(self, "load Project", "./projects/", "JSON Files (*.json)", options=options)
+        file_path, _ = QFileDialog.getOpenFileName(self, "load Project", PROJECTS_DIR, "JSON Files (*.json)", options=options)
         if file_path:
             with open(file_path, 'r', encoding='utf-8') as project_file:
                 project_configs = json.load(project_file)

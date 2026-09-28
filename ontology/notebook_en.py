@@ -1,10 +1,12 @@
-"""marimo notebook for the reliability-model ontology of UAV groups.
+"""marimo notebook for the reliability-model ontology of UAV groups (English version).
 
-    marimo edit ontology_notebook.py     # notebook
-    marimo run  ontology_notebook.py     # web app
+    marimo edit ontology/notebook_en.py     # notebook
+    marimo run  ontology/notebook_en.py     # web app
 
-Cells follow TZ_marimo_ontology.md §5: loading, facets, constraints, engine run, instance
-audit, gap matrix, mission search, export. All computation lives in models/ontology.py.
+English counterpart of ontology/notebook.py; opens ontology/projects/ontology_UAV_models_en.json
+by default and exports to ontology/exports/. Cells follow TZ_marimo_ontology.md §5: loading,
+facets, constraints, engine run, instance audit, gap matrix, mission search, export. All
+computation lives in ontology/engine.py.
 """
 
 import marimo
@@ -22,46 +24,51 @@ def _():
     import marimo as mo
     import pandas as pd
 
-    ROOT = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
-    if str(ROOT) not in sys.path:
-        sys.path.insert(0, str(ROOT))
+    HERE = (
+        Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd() / "ontology"
+    )
+    REPO_ROOT = HERE.parent
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
+    PROJECTS = HERE / "projects"
+    EXPORTS = HERE / "exports"
 
-    from models.ontology import Ontology, OntologyEngine
-    return Ontology, OntologyEngine, ROOT, json, mo, pd
+    from ontology.engine import Ontology, OntologyEngine
+    return EXPORTS, HERE, Ontology, OntologyEngine, PROJECTS, json, mo, pd
 
 
 @app.cell
 def _(mo):
     mo.md("""
-    # Онтологія моделей надійності та готовності груп БПЛА
+    # Ontology of reliability and availability models for UAV groups
 
-    Наступний шар над методом побудови класифікаторів стратегій: фасети розділені на
-    **об'єктний шар O** (властивості системи) і **методологічний шар M** (рішення
-    дослідника). Декартів добуток будується лише по шару O; шар M не перебирається, а
-    звужується правилами O → M до **залишкового домену**.
+    The next layer on top of the method for building strategy classifiers: facets are split into
+    the **object layer O** (properties of the system) and the **methodological layer M** (the
+    researcher's decisions). The Cartesian product is built over layer O only; layer M is not
+    enumerated but narrowed by O → M rules to a **residual domain**.
 
-    Прогалина — це клітина простору, яка одночасно **допустима** за обмеженнями і
-    **незаселена** жодним екземпляром.
+    A gap is a cell of the space that is both **admissible** under the constraints and
+    **unpopulated** by any instance.
     """)
     return
 
 
 @app.cell
-def _(ROOT, mo):
-    _files = sorted(p.name for p in (ROOT / "projects").glob("*.json"))
-    _default = "ontology_UAV_models.json"
+def _(PROJECTS, mo):
+    _files = sorted(p.name for p in PROJECTS.glob("*.json"))
+    _default = "ontology_UAV_models_en.json"
     file_dropdown = mo.ui.dropdown(
         options=_files,
         value=_default if _default in _files else (_files[0] if _files else None),
-        label="## 1. Файл проєкту",
+        label="## 1. Project file",
     )
     file_dropdown
     return (file_dropdown,)
 
 
 @app.cell
-def _(Ontology, OntologyEngine, ROOT, file_dropdown, mo):
-    ontology = Ontology.load(str(ROOT / "projects" / file_dropdown.value))
+def _(Ontology, OntologyEngine, PROJECTS, file_dropdown, mo):
+    ontology = Ontology.load(str(PROJECTS / file_dropdown.value))
     engine = OntologyEngine(ontology)
 
     _meta = ontology.meta
@@ -70,21 +77,21 @@ def _(Ontology, OntologyEngine, ROOT, file_dropdown, mo):
         if _meta.get(_key):
             _lines.append("- **%s:** %s" % (_key, _meta[_key]))
     if _meta.get("extensions"):
-        _lines.append("- **розширення формату:**")
+        _lines.append("- **format extensions:**")
         _lines += ["    - %s" % _item for _item in _meta["extensions"]]
     _notes = _meta.get("notes") or []
     if isinstance(_notes, str):
         _notes = [_notes]
     if _notes:
-        _lines.append("- **примітки:**")
+        _lines.append("- **notes:**")
         _lines += ["    - %s" % _item for _item in _notes]
     for _name, _body in (_meta.get("derived_quantities") or {}).items():
         _lines.append("- **%s** — %s: %s" % (_name, _body.get("name", ""), _body.get("description", "")))
         _lines += ["    - %s" % _rule for _rule in _body.get("rules", [])]
     if not ontology.instances:
         _lines.append(
-            "\n> У цьому файлі немає блоку `instances` — це класифікатор у форматі [П2]. "
-            "Комірки аудиту, пошуку та експорту будуть порожні."
+            "\n> This file has no `instances` block. "
+            "The audit, search and export cells will be empty."
         )
     mo.md("\n".join(_lines))
     return engine, ontology
@@ -96,22 +103,22 @@ def _(mo, ontology, pd):
         [
             {
                 "id": _f.id,
-                "назва": _f.name,
-                "домен": " | ".join(_f.domain),
-                "шар": _f.layer,
-                "група": _f.group or "",
-                "тип фасета": _f.facet_type or "",
-                "вага": _f.weight,
+                "name": _f.name,
+                "domain": " | ".join(_f.domain),
+                "layer": _f.layer,
+                "group": _f.group or "",
+                "facet type": _f.facet_type or "",
+                "weight": _f.weight,
             }
             for _f in ontology.facets()
         ]
     )
     mo.vstack(
         [
-            mo.md("## 2. Фасети"),
+            mo.md("## 2. Facets"),
             mo.md(
-                "Шар O — %d фасетів, шар M — %d. Вага використовується лише у зваженій "
-                "відстані `d_w`; фасети шару M мають вагу 0 і у відстань не входять."
+                "Layer O — %d facets, layer M — %d. The weight is used only in the weighted "
+                "distance `d_w`; layer M facets have weight 0 and do not enter the distance."
                 % (len(ontology.object_facets), len(ontology.methodological_facets))
             ),
             mo.ui.table(facets_df, selection=None, page_size=15),
@@ -132,11 +139,7 @@ def _():
         feature = action.get("feature")
         mode = action.get("mode")
         if mode == "annotate":
-            return "анотація: «%s»" % action.get("annotation", "")
-        if mode == "null":
-            return "%s → None (лише у виводі)" % feature
-        if "allowed_values" in action:
-            return "%s залишається у {%s}" % (feature, ", ".join(action["allowed_values"]))
+            return "annotation: “%s”" % action.get("annotation", "")
         if "blocked_values" in action:
             return "%s ≠ {%s}" % (feature, ", ".join(action["blocked_values"]))
         return "%s: %s" % (feature, mode)
@@ -151,25 +154,20 @@ def _(format_action, format_condition, mo, ontology, pd):
                 "id": _c.id,
                 "kind": _c.kind or "",
                 "rule_type": _c.rule_type,
-                "умови": (
-                    " та ".join(format_condition(_x) for _x in _c.conditions)
-                    if _c.conditions
-                    else ("%s ∈ {%s}" % (_c.feature, ", ".join(_c.allowed_values))
-                          if _c.rule_type == "domain" else "")
-                ),
-                "дії": " ; ".join(format_action(_x) for _x in _c.actions),
-                "опис": _c.description,
+                "conditions": " and ".join(format_condition(_x) for _x in _c.conditions),
+                "actions": " ; ".join(format_action(_x) for _x in _c.actions),
+                "description": _c.description,
             }
             for _c in ontology.constraints
         ]
     )
     mo.vstack(
         [
-            mo.md("## 3. Обмеження"),
+            mo.md("## 3. Constraints"),
             mo.md(
-                "Правила застосовуються **у порядку масиву**: заблокованій конфігурації "
-                "приписується id **першого** правила, що її відсікло. Сортувати не можна — "
-                "порядок задає пріоритет діагностики."
+                "Rules are applied **in array order**: a blocked configuration is attributed to "
+                "the id of the **first** rule that cut it off. They must not be sorted — the "
+                "order sets the diagnostic priority."
             ),
             mo.ui.table(
                 constraints_df.sort_values("kind", kind="stable") if "kind" in constraints_df
@@ -185,19 +183,25 @@ def _(format_action, format_condition, mo, ontology, pd):
 @app.cell
 def _(engine, mo, ontology):
     _space = engine.generate_object_space()
+    _space_summary = engine.space_summary()
     _valid, _blocked = engine.valid_object_configurations()
     _contradictory = engine.contradictory_configurations()
     _by_rule = engine.blocked_by_constraint()
 
     _summary = "\n".join(
         [
-            "| показник | значення |",
+            "| metric | value |",
             "|---|---|",
-            "| усього O-конфігурацій | **%d** |" % len(_space),
-            "| валідних | **%d** |" % len(_valid),
-            "| заблокованих | **%d** |" % len(_blocked),
-            "| суперечливих (порожній домен M) | **%d** |" % len(_contradictory),
-            "| незаселених валідних (прогалин) | **%d** |" % len(engine.all_gaps()),
+            "| total O-configurations | **%d** |" % len(_space),
+            "| valid | **%d** |" % len(_valid),
+            "| blocked | **%d** |" % len(_blocked),
+            "| contradictory (empty M domain) | **%d** |" % len(_contradictory),
+            "| occupied (a built model exists) | **%d** |" % _space_summary["occupied"],
+            "| gaps, total | **%d** |" % _space_summary["gap"],
+            "| &nbsp;&nbsp;· entered in the register (status `gap`) | **%d** |"
+            % _space_summary["gap_registered"],
+            "| &nbsp;&nbsp;· not entered in the register | **%d** |"
+            % _space_summary["gap_unregistered"],
         ]
     )
 
@@ -219,17 +223,17 @@ def _(engine, mo, ontology):
     _chart = mo.Html(
         "<table style='width:100%%;border-collapse:collapse'>%s</table>" % "".join(_bars)
         if _bars
-        else "<em>жодне правило нічого не заблокувало</em>"
+        else "<em>no rule blocked anything</em>"
     )
 
     if _contradictory:
         _contra = mo.md(
-            "**Суперечливі конфігурації (%d).** Порожній залишковий домен — це дефект набору "
-            "правил, а не властивість системи:\n\n%s"
+            "**Contradictory configurations (%d).** An empty residual domain is a defect of the "
+            "rule set, not a property of the system:\n\n%s"
             % (
                 len(_contradictory),
                 "\n".join(
-                    "- `%s` → домен **%s** спорожнили правила %s"
+                    "- `%s` → domain **%s** emptied by rules %s"
                     % (engine.format_configuration(_e.coords), _e.facet_id,
                        ", ".join(_e.emptying_constraints))
                     for _e in _contradictory[:20]
@@ -238,16 +242,16 @@ def _(engine, mo, ontology):
         )
     else:
         _contra = mo.md(
-            "**Суперечливих конфігурацій немає.** Саме проти цього випадку існує "
-            "узгоджувальне правило, що відсікає комбінацію на об'єктному шарі раніше, "
-            "ніж спорожніє домен показника."
+            "**No contradictory configurations.** This is exactly the case the reconciling "
+            "rule guards against: it cuts the combination off at the object layer before the "
+            "metric's domain becomes empty."
         )
 
     mo.vstack(
         [
-            mo.md("## 4. Прогін движка"),
+            mo.md("## 4. Engine run"),
             mo.md(_summary),
-            mo.md("**Скільки конфігурацій заблокувало кожне правило** (за першою причиною):"),
+            mo.md("**How many configurations each rule blocked** (by first cause):"),
             _chart,
             _contra,
         ]
@@ -261,49 +265,50 @@ def _(engine, mo, pd):
     for _entry in engine.audit_instances():
         _problems = []
         if _entry.unknown_facets:
-            _problems.append("невідомі фасети: %s" % ", ".join(_entry.unknown_facets))
+            _problems.append("unknown facets: %s" % ", ".join(_entry.unknown_facets))
         if _entry.missing_facets:
-            _problems.append("бракує координат: %s" % ", ".join(_entry.missing_facets))
+            _problems.append("missing coordinates: %s" % ", ".join(_entry.missing_facets))
         if _entry.out_of_domain:
             _problems.append(
-                "поза доменом: %s"
+                "out of domain: %s"
                 % ", ".join("%s=%s" % (_f, _v) for _f, _v in _entry.out_of_domain)
             )
         if not _entry.is_valid:
-            _problems.append("заблоковано правилом %s" % _entry.blocking_constraint)
+            _problems.append("blocked by rule %s" % _entry.blocking_constraint)
         for _facet_id, _ok in _entry.declared_in_residual.items():
             if not _ok:
-                _problems.append("заявлене %s поза залишковим доменом" % _facet_id)
+                _problems.append("declared %s outside the residual domain" % _facet_id)
         _rows.append(
             {
                 "id": _entry.instance_id,
-                "модель": _entry.model,
-                "статус": _entry.status,
-                "координати в доменах": "так" if not (
+                "model": _entry.model,
+                "status": _entry.status,
+                "coordinates in domains": "yes" if not (
                     _entry.unknown_facets or _entry.missing_facets or _entry.out_of_domain
-                ) else "ні",
-                "вектор валідний": "так" if _entry.is_valid else "ні",
-                "залишковий M1": ", ".join(_entry.residual.get("M1", [])),
-                "залишковий M2": ", ".join(_entry.residual.get("M2", [])),
-                "підсумок": "OK" if _entry.ok else "; ".join(_problems),
+                ) else "no",
+                "vector valid": "yes" if _entry.is_valid else "no",
+                "residual M1": ", ".join(_entry.residual.get("M1", [])),
+                "residual M2": ", ".join(_entry.residual.get("M2", [])),
+                "summary": "OK" if _entry.ok else "; ".join(_problems),
             }
         )
 
     audit_df = pd.DataFrame(_rows)
     mo.vstack(
         [
-            mo.md("## 5. Аудит екземплярів"),
+            mo.md("## 5. Instance audit"),
             mo.md(
-                "Автоматизація ручної перевірки: координати всередині доменів, вектор проходить "
-                "усі правила, заявлений показник лишається в залишковому домені шару M."
+                "Automation of the manual check: coordinates lie inside the domains, the vector "
+                "passes all rules, and the declared metric stays in the residual domain of layer M."
             ),
             mo.ui.table(audit_df, selection=None, page_size=15)
             if not audit_df.empty
-            else mo.md("_у файлі немає екземплярів_"),
+            else mo.md("_the file has no instances_"),
             mo.md(
-                "**Усі %d екземплярів пройшли перевірку.**" % len(_rows)
-                if _rows and all(_r["підсумок"] == "OK" for _r in _rows)
-                else "**Є знахідки — див. колонку «підсумок».** JSON самостійно не правити."
+                "**All %d instances passed the check.**" % len(_rows)
+                if _rows and all(_r["summary"] == "OK" for _r in _rows)
+                else "**There are findings — see the “summary” column.** Do not edit the JSON "
+                     "on your own."
             )
             if _rows
             else mo.md(""),
@@ -321,12 +326,12 @@ def _(mo, ontology):
     axis_x = mo.ui.dropdown(
         options=_axis_options,
         value=_by_id.get("O2", _labels[0]),
-        label="Вісь X",
+        label="X axis",
     )
     axis_y = mo.ui.dropdown(
         options=_axis_options,
         value=_by_id.get("O4", _labels[min(1, len(_labels) - 1)]),
-        label="Вісь Y",
+        label="Y axis",
     )
 
     _source = ontology.instances_by_id.get("i7") or (
@@ -349,14 +354,14 @@ def _(mo, ontology):
 
     mo.vstack(
         [
-            mo.md("## 6. Gap-матриця"),
+            mo.md("## 6. Gap matrix"),
             mo.md(
-                "Осі — два фасети шару O, решта координат зафіксована фільтрами "
-                "(за замовчуванням — зріз навколо `i7`). Клітина є **прогалиною** тоді і тільки "
-                "тоді, коли вона допустима за обмеженнями і незаселена екземпляром."
+                "The axes are two layer O facets; the remaining coordinates are fixed by the "
+                "filters (by default — the slice around `i7`). A cell is a **gap** if and only if "
+                "it is admissible under the constraints and unpopulated by an instance."
             ),
             mo.hstack([axis_x, axis_y], justify="start", gap=2),
-            mo.md("**Фіксовані координати** (вибрані осі ігноруються):"),
+            mo.md("**Fixed coordinates** (the selected axes are ignored):"),
             fixed_filters.hstack(justify="start", gap=1, wrap=True),
         ]
     )
@@ -367,7 +372,7 @@ def _(mo, ontology):
 def _(axis_x, axis_y, engine, fixed_filters, mo, ontology):
     if axis_x.value == axis_y.value:
         gap_matrix = None
-        gap_view = mo.md("> **Осі мають бути різними фасетами.**")
+        gap_view = mo.md("> **The axes must be different facets.**")
     else:
         gap_matrix = engine.gap_matrix(
             axis_x.value,
@@ -377,9 +382,10 @@ def _(axis_x, axis_y, engine, fixed_filters, mo, ontology):
         )
 
         _palette = {
-            "occupied": ("rgba(34,197,94,.22)", "зайнято"),
-            "gap": ("rgba(234,179,8,.22)", "прогалина"),
-            "blocked": ("rgba(148,163,184,.18)", "заборонено"),
+            "occupied": ("rgba(34,197,94,.22)", "occupied"),
+            "gap_registered": ("rgba(249,115,22,.22)", "registered gap"),
+            "gap": ("rgba(234,179,8,.22)", "gap"),
+            "blocked": ("rgba(148,163,184,.18)", "forbidden"),
         }
         _cell_style = (
             "border:1px solid rgba(128,128,128,.35);padding:6px 8px;"
@@ -398,12 +404,12 @@ def _(axis_x, axis_y, engine, fixed_filters, mo, ontology):
             for _x in gap_matrix.x_values:
                 _cell = gap_matrix.cell(_x, _y)
                 _colour, _label = _palette[_cell.state]
-                if _cell.state == "occupied":
+                if _cell.state in ("occupied", "gap_registered"):
                     _detail = "<br>".join(
                         "<code>%s</code> — %s" % (_i.id, _i.status) for _i in _cell.instances
                     )
                 elif _cell.state == "blocked":
-                    _detail = "правило <code>%s</code>" % _cell.constraint_id
+                    _detail = "rule <code>%s</code>" % _cell.constraint_id
                 else:
                     _detail = "&mdash;"
                 _cells.append(
@@ -418,7 +424,7 @@ def _(axis_x, axis_y, engine, fixed_filters, mo, ontology):
         _legend = " &nbsp;·&nbsp; ".join(
             "<span style='background:%s;padding:2px 8px;border-radius:3px'>%s: %d</span>"
             % (_palette[_state][0], _palette[_state][1], _counts[_state])
-            for _state in ("occupied", "gap", "blocked")
+            for _state in ("occupied", "gap_registered", "gap", "blocked")
         )
         gap_view = mo.vstack(
             [
@@ -457,14 +463,15 @@ def _(mo, ontology):
             for _f in ontology.object_facets
         }
     )
-    search_button = mo.ui.run_button(label="Виконати пошук (Алгоритм 1)")
+    search_button = mo.ui.run_button(label="Run search (Algorithm 1)")
 
     mo.vstack(
         [
-            mo.md("## 7. Пошук за умовами місії"),
+            mo.md("## 7. Search by mission conditions"),
             mo.md(
-                "Вхід — вектор координат шару O. Вихід — або наявний придатний екземпляр, "
-                "або новий екземпляр зі статусом `gap` разом із заготовкою технічного завдання."
+                "Input — a vector of layer O coordinates. Output — either an existing suitable "
+                "instance, or a new instance with status `gap` together with a draft technical "
+                "specification."
             ),
             mission_inputs.hstack(justify="start", gap=1, wrap=True),
             search_button,
@@ -475,16 +482,16 @@ def _(mo, ontology):
 
 @app.cell
 def _(engine, mission_inputs, mo, pd, search_button):
-    mo.stop(not search_button.value, mo.md("_Натисніть кнопку, щоб виконати пошук._"))
+    mo.stop(not search_button.value, mo.md("_Press the button to run the search._"))
 
     search_result = engine.search(dict(mission_inputs.value))
-    _blocks = [mo.md("### Результат: `%s`" % search_result.outcome)]
+    _blocks = [mo.md("### Result: `%s`" % search_result.outcome)]
 
     if search_result.outcome == "blocked":
         _blocks.append(
             mo.md(
-                "Вектор **недопустимий**: заблоковано правилом `%s`.\n\n"
-                "Найближчі допустимі вектори (зміна однієї координати) — %d:"
+                "The vector is **inadmissible**: blocked by rule `%s`.\n\n"
+                "Nearest admissible vectors (one coordinate changed) — %d:"
                 % (search_result.blocking_constraint, len(search_result.nearest_admissible))
             )
         )
@@ -495,14 +502,14 @@ def _(engine, mission_inputs, mo, pd, search_button):
                 page_size=10,
             )
             if search_result.nearest_admissible
-            else mo.md("_жодного — вектор недосяжний зміною однієї координати_")
+            else mo.md("_none — the vector cannot be reached by changing one coordinate_")
         )
     elif search_result.outcome == "contradictory":
         _blocks.append(
             mo.md(
-                "**Суперечність у наборі правил.** Порожній залишковий домен:\n\n%s"
+                "**Contradiction in the rule set.** Empty residual domain:\n\n%s"
                 % "\n".join(
-                    "- **%s** спорожнили правила %s"
+                    "- **%s** emptied by rules %s"
                     % (_e.facet_id, ", ".join(_e.emptying_constraints))
                     for _e in search_result.contradictions
                 )
@@ -511,7 +518,7 @@ def _(engine, mission_inputs, mo, pd, search_button):
     else:
         _blocks.append(
             mo.md(
-                "**Залишкові домени шару M:** %s"
+                "**Residual domains of layer M:** %s"
                 % "; ".join(
                     "`%s` = {%s}" % (_k, ", ".join(_v))
                     for _k, _v in search_result.residual.items()
@@ -520,18 +527,18 @@ def _(engine, mission_inputs, mo, pd, search_button):
         )
         if search_result.annotations:
             _blocks.append(
-                mo.md("**Анотації:** %s" % "; ".join(search_result.annotations))
+                mo.md("**Annotations:** %s" % "; ".join(search_result.annotations))
             )
 
-        _blocks.append(mo.md("**Сусіди** (відстань лише по шару O):"))
+        _blocks.append(mo.md("**Neighbours** (distance over layer O only):"))
         _blocks.append(
             mo.ui.table(
                 pd.DataFrame(
                     [
                         {
                             "id": _n.instance.id,
-                            "модель": _n.instance.model,
-                            "статус": _n.instance.status,
+                            "model": _n.instance.model,
+                            "status": _n.instance.status,
                             "d": _n.distance,
                             "d_w": _n.weighted_distance,
                         }
@@ -542,13 +549,13 @@ def _(engine, mission_inputs, mo, pd, search_button):
                 page_size=10,
             )
             if search_result.neighbours
-            else mo.md("_у файлі немає екземплярів_")
+            else mo.md("_the file has no instances_")
         )
 
         if search_result.outcome == "existing":
             _blocks.append(
                 mo.md(
-                    "d_w = 0 і статус «%s» → **придатна модель уже існує**: `%s` %s"
+                    "d_w = 0 and status “%s” → **a suitable model already exists**: `%s` %s"
                     % (
                         search_result.matched.status,
                         search_result.matched.id,
@@ -559,17 +566,17 @@ def _(engine, mission_inputs, mo, pd, search_button):
         elif search_result.outcome == "joins_gap":
             _blocks.append(
                 mo.md(
-                    "d_w = 0 і статус `gap` → запит **приєднується до наявної прогалини** "
+                    "d_w = 0 and status `gap` → the request **joins an existing gap** "
                     "`%s` %s" % (search_result.matched.id, search_result.matched.model)
                 )
             )
         else:
             _blocks.append(
                 mo.md(
-                    "d_w > 0 → **створюється новий екземпляр** `%s` зі статусом `gap`.\n\n"
-                    "#### Заготовка технічного завдання\n\n"
-                    "Розбіжні координати відносно найближчого сусіда `%s` — це і є оцінка "
-                    "вартості доробки:"
+                    "d_w > 0 → **a new instance is created** `%s` with status `gap`.\n\n"
+                    "#### Draft technical specification\n\n"
+                    "The coordinates that diverge from the nearest neighbour `%s` are the "
+                    "estimate of the cost of the extra work:"
                     % (search_result.new_instance["id"], search_result.nearest.id)
                 )
             )
@@ -578,11 +585,11 @@ def _(engine, mission_inputs, mo, pd, search_button):
                     pd.DataFrame(
                         [
                             {
-                                "фасет": "%s — %s" % (_d.facet_id, _d.facet_name),
-                                "тип фасета": _d.facet_type or "",
-                                "вага": _d.weight,
-                                "у сусіда": _d.from_value,
-                                "потрібно": _d.to_value,
+                                "facet": "%s — %s" % (_d.facet_id, _d.facet_name),
+                                "facet type": _d.facet_type or "",
+                                "weight": _d.weight,
+                                "neighbour has": _d.from_value,
+                                "required": _d.to_value,
                             }
                             for _d in search_result.divergences
                         ]
@@ -593,8 +600,9 @@ def _(engine, mission_inputs, mo, pd, search_button):
             )
             _blocks.append(
                 mo.md(
-                    "**План верифікації — кандидати** (переносяться з уже записаних у файлі "
-                    "відношень; движок нових не виводить, див. TODO у §4.6 ТЗ):"
+                    "**Verification plan — candidates** (carried over from relations already "
+                    "written in the file; the engine does not derive new ones, see the TODO in "
+                    "§4.6 of the spec):"
                 )
             )
             _blocks.append(
@@ -604,15 +612,15 @@ def _(engine, mission_inputs, mo, pd, search_button):
                     page_size=10,
                 )
                 if search_result.verification_candidates
-                else mo.md("_немає_")
+                else mo.md("_none_")
             )
 
         _blocks.append(
             mo.md(
-                "#### Суміжні прогалини (рангування за d_w)\n\n"
-                "d_w = 1 по параметричному фасету успадковує структуру графа; d_w ≥ 2 вимагає "
-                "перебудови простору станів. Дзеркало по O1 — не прогалина, а передумова "
-                "порівняння стратегій."
+                "#### Adjacent gaps (ranked by d_w)\n\n"
+                "d_w = 1 along a parametric facet inherits the graph structure; d_w ≥ 2 requires "
+                "rebuilding the state space. The mirror along O1 is not a gap but a precondition "
+                "for comparing strategies."
             )
         )
         _blocks.append(
@@ -620,14 +628,14 @@ def _(engine, mission_inputs, mo, pd, search_button):
                 pd.DataFrame(
                     [
                         {
-                            "конфігурація": engine.format_configuration(_g.coords),
+                            "configuration": engine.format_configuration(_g.coords),
                             "d": _g.distance,
                             "d_w": _g.weighted_distance,
-                            "розбіжності": ", ".join(
+                            "divergences": ", ".join(
                                 "%s: %s → %s" % (_d.facet_id, _d.from_value, _d.to_value)
                                 for _d in _g.divergences
                             ),
-                            "коментар": _g.rank_note,
+                            "comment": _g.rank_note,
                         }
                         for _g in search_result.adjacent_gaps
                     ]
@@ -636,7 +644,7 @@ def _(engine, mission_inputs, mo, pd, search_button):
                 page_size=10,
             )
             if search_result.adjacent_gaps
-            else mo.md("_немає_")
+            else mo.md("_none_")
         )
 
     mo.vstack(_blocks)
@@ -645,26 +653,26 @@ def _(engine, mission_inputs, mo, pd, search_button):
 
 @app.cell
 def _(mo):
-    export_button = mo.ui.run_button(label="Зберегти gap-список у exports/")
-    mo.vstack([mo.md("## 8. Експорт"), export_button])
+    export_button = mo.ui.run_button(label="Save the gap list to exports/")
+    mo.vstack([mo.md("## 8. Export"), export_button])
     return (export_button,)
 
 
 @app.cell
-def _(ROOT, engine, export_button, file_dropdown, json, mo, ontology, pd):
-    mo.stop(not export_button.value, mo.md("_Натисніть кнопку, щоб зберегти файли._"))
+def _(EXPORTS, HERE, engine, export_button, file_dropdown, json, mo, ontology, pd):
+    mo.stop(not export_button.value, mo.md("_Press the button to save the files._"))
 
     _gaps = engine.all_gaps()
     _ids = [_f.id for _f in ontology.object_facets]
     _records = [
         dict([(_i, _c[_i]) for _i in _ids]
-             + [("конфігурація", engine.format_configuration(_c))]
-             + [("залишковий_%s" % _k, ", ".join(_v))
+             + [("configuration", engine.format_configuration(_c))]
+             + [("residual_%s" % _k, ", ".join(_v))
                 for _k, _v in engine.allowed_methodological_values(_c).items()])
         for _c in _gaps
     ]
 
-    _export_dir = ROOT / "exports"
+    _export_dir = EXPORTS
     _export_dir.mkdir(exist_ok=True)
     _stem = file_dropdown.value.rsplit(".", 1)[0]
     _csv_path = _export_dir / ("%s_gaps.csv" % _stem)
@@ -685,8 +693,8 @@ def _(ROOT, engine, export_button, file_dropdown, json, mo, ontology, pd):
         )
 
     mo.md(
-        "Збережено **%d** прогалин:\n\n- `%s`\n- `%s`"
-        % (len(_records), _csv_path.relative_to(ROOT), _json_path.relative_to(ROOT))
+        "Saved **%d** gaps:\n\n- `%s`\n- `%s`"
+        % (len(_records), _csv_path.relative_to(HERE.parent), _json_path.relative_to(HERE.parent))
     )
     return
 
